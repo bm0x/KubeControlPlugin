@@ -37,6 +37,11 @@ public class DiscordHandler extends ListenerAdapter {
 
         // Register our interaction listener
         this.jda.addEventListener(this);
+
+        // Auto-Check Verification Panel
+        if (plugin.getConfig().getBoolean("discord.native-validation.enabled")) {
+            sendVerificationPanel();
+        }
     }
 
     // ==========================================
@@ -55,16 +60,41 @@ public class DiscordHandler extends ListenerAdapter {
 
         TextChannel channel = jda.getTextChannelById(channelId);
         if (channel != null) {
+            String existingMsgId = plugin.getConfig().getString("discord.native-validation.message-id");
             String msgText = plugin.getConfig().getString("discord.native-validation.message-text");
             String btnLabel = plugin.getConfig().getString("discord.native-validation.button-label");
 
-            // Allow cleaning chat? Maybe later.
+            // Logic to send new message
+            java.util.function.Consumer<Void> sendNewMessage = (v) -> {
+                channel.sendMessage(msgText)
+                        .setActionRow(Button.success("kc_verify_btn", btnLabel))
+                        .queue(msg -> {
+                            plugin.getConfig().set("discord.native-validation.message-id", msg.getId());
+                            plugin.saveConfig();
+                            plugin.getLogger()
+                                    .info("Panel de verificación enviado y guardado (ID: " + msg.getId() + ")");
+                        });
+            };
 
-            channel.sendMessage(msgText)
-                    .setActionRow(Button.success("kc_verify_btn", btnLabel)) // ID: kc_verify_btn
-                    .queue();
+            if (existingMsgId != null && !existingMsgId.isEmpty()) {
+                // Check if exists
+                channel.retrieveMessageById(existingMsgId).queue(
+                        msg -> {
+                            // Message exists, maybe update it? For now just log.
+                            // Optional: Edit it to ensure text is up to date
+                            // msg.editMessage(msgText).setActionRow(...).queue();
+                            plugin.getLogger().info("Panel de verif. ya existe (ID: " + existingMsgId + ")");
+                        },
+                        failure -> {
+                            // Message not found (deleted?), send new
+                            plugin.getLogger().warning("Mensaje de verif. antiguo no encontrado. Enviando nuevo...");
+                            sendNewMessage.accept(null);
+                        });
+            } else {
+                // No ID stored, send new
+                sendNewMessage.accept(null);
+            }
 
-            plugin.getLogger().info("Panel de verificación enviado al canal " + channel.getName());
         } else {
             plugin.getLogger().warning("No se encontró el canal de verificación: " + channelId);
         }

@@ -123,6 +123,7 @@ public class StateExporter {
     private static class PlayerInfo {
         String uuid;
         String name;
+        String rank; // New field for LuckPerms group / OP status
         int ping;
         String world;
         double balance = 0.0;
