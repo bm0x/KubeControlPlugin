@@ -1,0 +1,53 @@
+# KubeControlPlugin Configuration
+
+# ==========================================
+# Módulo Discord (JDA + DiscordSRV)
+# ==========================================
+discord:
+  enabled: true
+  # Nota: El Bot Token se configura en /plugins/DiscordSRV/config.yml
+  # KubeControl usa la conexión de DiscordSRV.
+  
+  # Canales para mensajes específicos (IDs numéricas)
+  channels:
+    verification: "123456789012345678"  # Donde se envía el botón de "Verificar"
+    logs: "123456789012345678"          # Logs de auditoría
+
+  # Botón de Auto-Validación (Discord Nativo)
+  native-validation:
+    enabled: true
+    button-label: "✅ Aceptar Reglas y Verificarse"
+    message-text: "**Bienvenido a KubeControl!**\nPor favor, lee las reglas y pulsa el botón para verificarte."
+    # Rol que se asigna al pulsar el botón (ID)
+    reward-role-id: "999999999999999999"
+
+# ==========================================
+# Gestión de Roles (Minecraft <-> Discord)
+# ==========================================
+# Roles adicionales que se asignan basados en criterios del juego
+# Se comprueba al entrar o con /kc verifymember
+roles:
+  # Ejemplo: Si tienes rango "vip" en MC, te da el rol VIP en Discord
+  vip:
+    discord-role-id: "888888888888888888"
+    minecraft-permission: "kubecontrol.role.vip"
+    
+  # Ejemplo: Si tienes > 10000 de dinero (Vault), te da rol "Magnate"
+  economy-magnate:
+    discord-role-id: "777777777777777777"
+    min-balance: 10000.0
+
+# ==========================================
+# Bridge (Integración TUI)
+# ==========================================
+bridge:
+  export-interval: 5 # Segundos
+  output-file: "server-state.json" # Se guarda en la raiz del servidor
+
+# ==========================================
+# Mensajes
+# ==========================================
+messages:
+  prefix: "&8[&bKubeControl&8] &r"
+  reload: "&aConfiguración recargada correctamente."
+  no-permission: "&cNo tienes permisos para esto."

@@ -1,0 +1,24 @@
+name: KubeControlPlugin
+version: '${project.version}'
+main: com.bm0x.kubecontrol.KubeControl
+api-version: 1.20
+prefix: KubeControl
+authors: [bm0x]
+description: Plugin de integración para KubeControlMC con economía y Discord.
+website: https://github.com/bm0x/KubeControlMC
+
+depend:
+  - Vault
+  - DiscordSRV
+
+commands:
+  kc:
+    description: Comando principal de KubeControl
+    usage: /kc <subcomando>
+    permission: kubecontrol.admin
+    aliases: [kubecontrol]
+
+permissions:
+  kubecontrol.admin:
+    description: Permite administrar el plugin KubeControl
+    default: op
