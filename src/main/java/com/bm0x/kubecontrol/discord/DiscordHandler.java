@@ -116,9 +116,9 @@ public class DiscordHandler extends ListenerAdapter {
             if (role != null && member != null) {
                 // Give Role
                 guild.addRoleToMember(member, role).queue(
-                        success -> event.reply("✅ **Verificado!** Se te ha asignado el rol " + role.getName())
+                        success -> event.reply("✅ **Verificado!**\nSe te ha asignado el rol\n" + role.getName())
                                 .setEphemeral(true).queue(),
-                        error -> event.reply("❌ Error al asignar rol. Contacta a un admin.").setEphemeral(true)
+                        error -> event.reply("❌ Error al asignar rol.\nContacta a un admin.").setEphemeral(true)
                                 .queue());
             } else {
                 event.reply("❌ Error de configuración (Rol o Miembro no encontrado).").setEphemeral(true).queue();

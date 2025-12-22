@@ -17,7 +17,8 @@ discord:
   native-validation:
     enabled: true
     button-label: "✅ Aceptar Reglas y Verificarse"
-    message-text: "**Bienvenido a KubeControl!**\nPor favor, lee las reglas y pulsa el botón para verificarte."
+    server-name: "Servidor X"
+    message-text: "**¡Bienvenido a {server_name}!**\nPor favor, lee las reglas y pulsa el botón para verificarte."
     # Rol que se asigna al pulsar el botón (ID)
     reward-role-id: "999999999999999999"
 
