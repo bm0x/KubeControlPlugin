@@ -1,6 +1,7 @@
 # KubeControlPlugin 🧩
 
 **KubeControlPlugin** es el plugin "compañero" de Java para la herramienta de gestión **KubeControlMC (TUI)**.
+![Build Status](https://github.com/bm0x/KubeControlPlugin/actions/workflows/build.yml/badge.svg)
 Diseñado para **Minecraft 1.20 / 1.21**, sirve como puente entre el servidor, Discord y la interfaz de terminal.
 
 ## Características Principales
