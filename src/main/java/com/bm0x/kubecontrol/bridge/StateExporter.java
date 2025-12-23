@@ -59,6 +59,15 @@ public class StateExporter {
         state.rams_used = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024;
         state.rams_max = Runtime.getRuntime().maxMemory() / 1024 / 1024;
 
+        // Helper to get LuckPerms
+        net.luckperms.api.LuckPerms luckPerms = null;
+        if (Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
+            try {
+                luckPerms = net.luckperms.api.LuckPermsProvider.get();
+            } catch (Exception e) {
+            }
+        }
+
         // Players
         for (Player p : Bukkit.getOnlinePlayers()) {
             PlayerInfo info = new PlayerInfo();
@@ -67,32 +76,47 @@ public class StateExporter {
             info.ping = p.getPing();
             info.world = p.getWorld().getName();
 
-            // Economy (Vault)
+            // Vault Economy
             if (economy != null) {
                 info.balance = economy.getBalance(p);
             }
 
             // Discord (DiscordSRV)
             if (Bukkit.getPluginManager().isPluginEnabled("DiscordSRV")) {
-                String discordId = DiscordSRV.getPlugin().getAccountLinkManager().getDiscordId(p.getUniqueId());
-                if (discordId != null) {
-                    info.discordId = discordId;
-                    // JDA is heavy to query avatar every 5s.
-                    // TUI can resolve Avatar URL from ID:
-                    // https://cdn.discordapp.com/avatars/{id}/{hash}.png
-                    // But we don't have hash easily without JDA user object.
-                    // We can try to get cached user from DiscordSRV JDA.
-                    try {
-                        github.scarsz.discordsrv.dependencies.jda.api.entities.User user = DiscordSRV.getPlugin()
-                                .getJda().getUserById(discordId);
-                        if (user != null) {
-                            info.discordTag = user.getAsTag();
-                            info.avatarUrl = user.getAvatarUrl();
+                // ... same discord logic, keeping it ...
+                try {
+                    String discordId = DiscordSRV.getPlugin().getAccountLinkManager().getDiscordId(p.getUniqueId());
+                    if (discordId != null) {
+                        info.discordId = discordId;
+                        try {
+                            github.scarsz.discordsrv.dependencies.jda.api.entities.User user = DiscordSRV.getPlugin()
+                                    .getJda().getUserById(discordId);
+                            if (user != null) {
+                                info.discordTag = user.getAsTag();
+                                info.avatarUrl = user.getAvatarUrl();
+                            }
+                        } catch (Exception e) {
                         }
-                    } catch (Exception e) {
-                        // Ignore JDA errors during async export
                     }
+                } catch (Exception e) {
                 }
+            }
+
+            // LuckPerms Logic (Rank)
+            if (luckPerms != null) {
+                net.luckperms.api.model.user.User lpUser = luckPerms.getUserManager().getUser(p.getUniqueId());
+                if (lpUser != null) {
+                    String group = lpUser.getCachedData().getMetaData().getPrimaryGroup();
+                    if (group != null) {
+                        info.rank = group.substring(0, 1).toUpperCase() + group.substring(1);
+                    } else {
+                        info.rank = "Unknown";
+                    }
+                } else {
+                    info.rank = p.isOp() ? "OP" : "User";
+                }
+            } else {
+                info.rank = p.isOp() ? "OP" : "User";
             }
 
             state.players.add(info);
