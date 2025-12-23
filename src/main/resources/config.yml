@@ -29,20 +29,41 @@ discord:
       - "say ¡%player% se ha verificado en Discord!"
 
 # ==========================================
-# Gestión de Roles (Minecraft <-> Discord)
+# Sincronización de Roles (Bidireccional)
 # ==========================================
-# Roles adicionales que se asignan basados en criterios del juego
-# Se comprueba al entrar o con /kc verifymember
-roles:
-  # Ejemplo: Si tienes rango "vip" en MC, te da el rol VIP en Discord
-  vip:
-    discord-role-id: "888888888888888888"
-    minecraft-permission: "kubecontrol.role.vip"
-    
-  # Ejemplo: Si tienes > 10000 de dinero (Vault), te da rol "Magnate"
-  economy-magnate:
-    discord-role-id: "777777777777777777"
-    min-balance: 10000.0
+sync:
+  enabled: true
+  interval: 60 # Segundos entre comprobaciones
+
+  # Discord -> Minecraft
+  # Si el usuario tiene X rol en Discord, ejecutamos comandos en MC
+  discord-to-game:
+    server-booster:
+      # ID del Rol "Server Booster" en Discord
+      discord-role-id: "000000000000000000"
+      # Comandos a ejecutar (solo una vez o periódicamente, lógica a implementar)
+      # Para evitar spam, el plugin necesitaría persistencia. 
+      # Por simplicidad, podríamos aplicar grupos LP que son idempotentes.
+      commands:
+        - "lp user %player% parent addtemp booster 1d" 
+        # Nota: Usar addtemp asegura que si pierde el rol, expire. 
+        # O usar un sistema de sync más complejo.
+      
+      # Opción Simple: Asignar Permiso/Grupo LuckPerms directamente si es posible, 
+      # pero comandos da más libertad.
+      
+  # Minecraft -> Discord
+  # Si el usuario tiene X permiso/dinero en MC, gana X rol en Discord
+  game-to-discord:
+    miembro-regular:
+      # Si no tiene ningún rol especial (podemos usar negaciones o permisos)
+      # condición: "permission:kubecontrol.group.regular"
+      minecraft-permission: "kubecontrol.group.regular"
+      give-discord-role-id: "888888888888888888"
+      
+    economy-magnate:
+      min-balance: 10000.0
+      give-discord-role-id: "777777777777777777"
 
 # ==========================================
 # Bridge (Integración TUI)

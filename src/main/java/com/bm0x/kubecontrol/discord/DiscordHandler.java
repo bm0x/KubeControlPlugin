@@ -159,4 +159,8 @@ public class DiscordHandler extends ListenerAdapter {
             event.reply("❌ Configuración incompleta.").setEphemeral(true).queue();
         }
     }
+
+    public JDA getJda() {
+        return this.jda;
+    }
 }
