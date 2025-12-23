@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
-import java.util.Set;
 
 public class RoleSyncTask extends BukkitRunnable {
 
@@ -40,7 +39,7 @@ public class RoleSyncTask extends BukkitRunnable {
         }
     }
 
-    private void syncPlayer(Player p) {
+    public void syncPlayer(Player p) {
         String discordId = DiscordSRV.getPlugin().getAccountLinkManager().getDiscordId(p.getUniqueId());
         if (discordId == null)
             return; // Not linked

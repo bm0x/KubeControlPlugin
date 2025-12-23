@@ -10,6 +10,7 @@ public class KubeControl extends JavaPlugin {
     private static KubeControl instance;
     private com.bm0x.kubecontrol.discord.DiscordHandler discordHandler;
     private com.bm0x.kubecontrol.bridge.StateExporter stateExporter;
+    private com.bm0x.kubecontrol.discord.RoleSyncTask roleSyncTask;
 
     @Override
     public void onEnable() {
@@ -40,7 +41,8 @@ public class KubeControl extends JavaPlugin {
         stateExporter.start();
 
         // Start Role Syncer
-        new com.bm0x.kubecontrol.discord.RoleSyncTask(this).start();
+        roleSyncTask = new com.bm0x.kubecontrol.discord.RoleSyncTask(this);
+        roleSyncTask.start();
 
         // Register Commands
         getCommand("kc").setExecutor(new com.bm0x.kubecontrol.commands.CommandManager(this));
@@ -61,6 +63,10 @@ public class KubeControl extends JavaPlugin {
 
     public com.bm0x.kubecontrol.discord.DiscordHandler getDiscordHandler() {
         return discordHandler;
+    }
+
+    public com.bm0x.kubecontrol.discord.RoleSyncTask getRoleSyncTask() {
+        return roleSyncTask;
     }
 
     public com.bm0x.kubecontrol.bridge.StateExporter getStateExporter() {

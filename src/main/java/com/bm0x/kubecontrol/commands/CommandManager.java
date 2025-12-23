@@ -61,8 +61,27 @@ public class CommandManager implements CommandExecutor {
                 break;
 
             case "verifymember":
-                // Placeholder for Role Manager (Phase 7)
-                sender.sendMessage(ChatColor.YELLOW + "Función en desarrollo (Fase 7)");
+                if (!sender.hasPermission("kubecontrol.admin")) {
+                    sender.sendMessage(ChatColor.RED + "No tienes permiso.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + "Uso: /kc verifymember <jugador>");
+                    return true;
+                }
+                String targetName = args[1];
+                org.bukkit.entity.Player target = org.bukkit.Bukkit.getPlayer(targetName);
+                if (target == null) {
+                    sender.sendMessage(ChatColor.RED + "Jugador no encontrado o desconectado.");
+                    return true;
+                }
+
+                if (plugin.getRoleSyncTask() != null) {
+                    plugin.getRoleSyncTask().syncPlayer(target);
+                    sender.sendMessage(ChatColor.GREEN + "Sincronización forzada ejecutada para " + target.getName());
+                } else {
+                    sender.sendMessage(ChatColor.RED + "El módulo de Sincronización no está activo.");
+                }
                 break;
 
             default:
