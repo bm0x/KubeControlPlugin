@@ -19,8 +19,10 @@ discord:
     button-label: "✅ Aceptar Reglas y Verificarse"
     server-name: "Servidor X"
     message-text: "**¡Bienvenido a {server_name}!**\nPor favor, lee las reglas y pulsa el botón para verificarte."
-    # Rol que se asigna al pulsar el botón (ID)
-    reward-role-id: "999999999999999999"
+    # Roles que se asignan al pulsar el botón (Lista de IDs)
+    reward-role-ids: 
+      - "999999999999999999"    # Rol 1 (Ej: Miembro)
+      - "000000000000000000"    # Rol 2 (Ej: Verificado)
     
     # Comandos de consola a ejecutar si el usuario tiene cuenta vinculada
     # Usa %player% para el nombre del jugador

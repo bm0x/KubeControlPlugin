@@ -110,53 +110,71 @@ public class DiscordHandler extends ListenerAdapter {
         if (!event.getComponentId().equals("kc_verify_btn"))
             return;
 
-        // Get Reward Role ID
-        String roleId = plugin.getConfig().getString("discord.native-validation.reward-role-id");
+        // Get Reward Role IDs (List support)
+        java.util.List<String> roleIds = plugin.getConfig().getStringList("discord.native-validation.reward-role-ids");
+        // Fallback to singular if empty
+        if (roleIds.isEmpty()) {
+            String singleObj = plugin.getConfig().getString("discord.native-validation.reward-role-id");
+            if (singleObj != null)
+                roleIds.add(singleObj);
+        }
+
         Guild guild = event.getGuild();
+        Member member = event.getMember();
 
-        if (roleId != null && guild != null) {
-            Role role = guild.getRoleById(roleId);
-            Member member = event.getMember();
+        if (guild != null && member != null && !roleIds.isEmpty()) {
+            // Collect valid roles
+            java.util.List<Role> rolesToAdd = new java.util.ArrayList<>();
+            StringBuilder roleNames = new StringBuilder();
 
-            if (role != null && member != null) {
-                // Give Role
-                guild.addRoleToMember(member, role).queue(
-                        success -> {
-                            event.reply("✅ **Verificado!**\nSe te ha asignado el rol\n" + role.getName())
-                                    .setEphemeral(true).queue();
+            for (String rid : roleIds) {
+                Role r = guild.getRoleById(rid);
+                if (r != null) {
+                    rolesToAdd.add(r);
+                    if (roleNames.length() > 0)
+                        roleNames.append(", ");
+                    roleNames.append(r.getName());
+                }
+            }
 
-                            // Check for Linked Account and Execute Commands
-                            // Run async to avoid blocking Discord thread, but commands must run on main
-                            // thread
-                            if (DiscordSRV.getPlugin().getAccountLinkManager() != null) {
-                                java.util.UUID uuid = DiscordSRV.getPlugin().getAccountLinkManager()
-                                        .getUuid(member.getId());
-                                if (uuid != null) {
-                                    final String playerName = org.bukkit.Bukkit.getOfflinePlayer(uuid).getName();
-                                    if (playerName != null) {
-                                        java.util.List<String> commands = plugin.getConfig()
-                                                .getStringList("discord.native-validation.reward-commands");
-                                        if (commands != null && !commands.isEmpty()) {
-                                            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
-                                                org.bukkit.command.ConsoleCommandSender console = org.bukkit.Bukkit
-                                                        .getConsoleSender();
-                                                for (String cmd : commands) {
-                                                    String parsedCmd = cmd.replace("%player%", playerName);
-                                                    org.bukkit.Bukkit.dispatchCommand(console, parsedCmd);
-                                                }
-                                            });
-                                        }
+            if (!rolesToAdd.isEmpty()) {
+                // Reply first to handle interaction
+                event.reply("✅ **Verificado!**\nRoles asignados: " + roleNames.toString()).setEphemeral(true).queue();
+
+                // Add Roles
+                for (Role r : rolesToAdd) {
+                    if (!member.getRoles().contains(r)) {
+                        guild.addRoleToMember(member, r).queue();
+                    }
+                }
+
+                // Check for Linked Account and Execute Commands
+                if (DiscordSRV.getPlugin().getAccountLinkManager() != null) {
+                    java.util.UUID uuid = DiscordSRV.getPlugin().getAccountLinkManager().getUuid(member.getId());
+                    if (uuid != null) {
+                        final String playerName = org.bukkit.Bukkit.getOfflinePlayer(uuid).getName();
+                        if (playerName != null) {
+                            java.util.List<String> commands = plugin.getConfig()
+                                    .getStringList("discord.native-validation.reward-commands");
+                            if (commands != null && !commands.isEmpty()) {
+                                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
+                                    org.bukkit.command.ConsoleCommandSender console = org.bukkit.Bukkit
+                                            .getConsoleSender();
+                                    for (String cmd : commands) {
+                                        String parsedCmd = cmd.replace("%player%", playerName);
+                                        org.bukkit.Bukkit.dispatchCommand(console, parsedCmd);
                                     }
-                                }
+                                });
                             }
-                        },
-                        error -> event.reply("❌ Error al asignar rol.\nContacta a un admin.").setEphemeral(true)
-                                .queue());
+                        }
+                    }
+                }
+
             } else {
-                event.reply("❌ Error de configuración (Rol o Miembro no encontrado).").setEphemeral(true).queue();
+                event.reply("❌ Error: Roles configurados no encontrados en Discord.").setEphemeral(true).queue();
             }
         } else {
-            event.reply("❌ Configuración incompleta.").setEphemeral(true).queue();
+            event.reply("❌ Error de configuración o Guild nula.").setEphemeral(true).queue();
         }
     }
 
