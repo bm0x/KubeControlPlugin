@@ -121,8 +121,35 @@ public class DiscordHandler extends ListenerAdapter {
             if (role != null && member != null) {
                 // Give Role
                 guild.addRoleToMember(member, role).queue(
-                        success -> event.reply("✅ **Verificado!**\nSe te ha asignado el rol\n" + role.getName())
-                                .setEphemeral(true).queue(),
+                        success -> {
+                            event.reply("✅ **Verificado!**\nSe te ha asignado el rol\n" + role.getName())
+                                    .setEphemeral(true).queue();
+
+                            // Check for Linked Account and Execute Commands
+                            // Run async to avoid blocking Discord thread, but commands must run on main
+                            // thread
+                            if (DiscordSRV.getPlugin().getAccountLinkManager() != null) {
+                                java.util.UUID uuid = DiscordSRV.getPlugin().getAccountLinkManager()
+                                        .getUuid(member.getId());
+                                if (uuid != null) {
+                                    final String playerName = org.bukkit.Bukkit.getOfflinePlayer(uuid).getName();
+                                    if (playerName != null) {
+                                        java.util.List<String> commands = plugin.getConfig()
+                                                .getStringList("discord.native-validation.reward-commands");
+                                        if (commands != null && !commands.isEmpty()) {
+                                            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
+                                                org.bukkit.command.ConsoleCommandSender console = org.bukkit.Bukkit
+                                                        .getConsoleSender();
+                                                for (String cmd : commands) {
+                                                    String parsedCmd = cmd.replace("%player%", playerName);
+                                                    org.bukkit.Bukkit.dispatchCommand(console, parsedCmd);
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        },
                         error -> event.reply("❌ Error al asignar rol.\nContacta a un admin.").setEphemeral(true)
                                 .queue());
             } else {

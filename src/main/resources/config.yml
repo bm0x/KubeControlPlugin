@@ -21,6 +21,12 @@ discord:
     message-text: "**¡Bienvenido a {server_name}!**\nPor favor, lee las reglas y pulsa el botón para verificarte."
     # Rol que se asigna al pulsar el botón (ID)
     reward-role-id: "999999999999999999"
+    
+    # Comandos de consola a ejecutar si el usuario tiene cuenta vinculada
+    # Usa %player% para el nombre del jugador
+    reward-commands:
+      - "lp user %player% parent set default"
+      - "say ¡%player% se ha verificado en Discord!"
 
 # ==========================================
 # Gestión de Roles (Minecraft <-> Discord)
