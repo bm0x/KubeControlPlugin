@@ -61,12 +61,17 @@ public class DiscordHandler extends ListenerAdapter {
         TextChannel channel = jda.getTextChannelById(channelId);
         if (channel != null) {
             String existingMsgId = plugin.getConfig().getString("discord.native-validation.message-id");
-            String msgText = plugin.getConfig().getString("discord.native-validation.message-text");
             String btnLabel = plugin.getConfig().getString("discord.native-validation.button-label");
+
+            // Placeholder Replacement
+            String serverName = plugin.getConfig().getString("discord.native-validation.server-name", "Server");
+            String rawMsgText = plugin.getConfig().getString("discord.native-validation.message-text");
+
+            final String finalMsgText = (rawMsgText != null) ? rawMsgText.replace("{server_name}", serverName) : "";
 
             // Logic to send new message
             java.util.function.Consumer<Void> sendNewMessage = (v) -> {
-                channel.sendMessage(msgText)
+                channel.sendMessage(finalMsgText)
                         .setActionRow(Button.success("kc_verify_btn", btnLabel))
                         .queue(msg -> {
                             plugin.getConfig().set("discord.native-validation.message-id", msg.getId());
