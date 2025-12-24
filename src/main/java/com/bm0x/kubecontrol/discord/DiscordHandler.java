@@ -110,8 +110,14 @@ public class DiscordHandler extends ListenerAdapter {
         if (!event.getComponentId().equals("kc_verify_btn"))
             return;
 
+        // Acknowledge interaction immediately to prevent "Interaction Failed"
+        event.deferReply(true).queue();
+
         // Get Reward Role IDs (List support)
-        java.util.List<String> roleIds = plugin.getConfig().getStringList("discord.native-validation.reward-role-ids");
+        // Wrap in ArrayList to ensure mutability
+        java.util.List<String> roleIds = new java.util.ArrayList<>(
+                plugin.getConfig().getStringList("discord.native-validation.reward-role-ids"));
+
         // Fallback to singular if empty
         if (roleIds.isEmpty()) {
             String singleObj = plugin.getConfig().getString("discord.native-validation.reward-role-id");
@@ -138,8 +144,8 @@ public class DiscordHandler extends ListenerAdapter {
             }
 
             if (!rolesToAdd.isEmpty()) {
-                // Reply first to handle interaction
-                event.reply("✅ **Verificado!**\nRoles asignados: " + roleNames.toString()).setEphemeral(true).queue();
+                // Reply via Hook
+                event.getHook().sendMessage("✅ **Verificado!**\nRoles asignados: " + roleNames.toString()).queue();
 
                 // Add Roles
                 for (Role r : rolesToAdd) {
@@ -171,10 +177,10 @@ public class DiscordHandler extends ListenerAdapter {
                 }
 
             } else {
-                event.reply("❌ Error: Roles configurados no encontrados en Discord.").setEphemeral(true).queue();
+                event.getHook().sendMessage("❌ Error: Roles configurados no encontrados en Discord.").queue();
             }
         } else {
-            event.reply("❌ Error de configuración o Guild nula.").setEphemeral(true).queue();
+            event.getHook().sendMessage("❌ Error de configuración o Guild nula.").queue();
         }
     }
 
