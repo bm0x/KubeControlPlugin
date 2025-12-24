@@ -1,105 +1,69 @@
 # KubeControlPlugin 🧩
 
-**KubeControlPlugin** es el plugin "compañero" de Java para la herramienta de gestión **KubeControlMC (TUI)**.
+**KubeControlPlugin** es el plugin "compañero" de Java para la herramienta de gestión **KubeControlMC**.
 ![Build Status](https://github.com/bm0x/KubeControlPlugin/actions/workflows/build.yml/badge.svg)
-Diseñado para **Minecraft 1.20 / 1.21**, sirve como puente entre el servidor, Discord y la interfaz de terminal.
+
+Diseñado para **Minecraft 1.20 / 1.21**, sirve como puente entre el servidor, Discord y la interfaz de gestión.
 
 ## Características Principales
 
-1.  **Integración con Discord Nativa**:
-    *   Usa **Botones** de Discord para verificar usuarios (sin comandos complejos).
-    *   Asigna roles de Discord automáticamente.
-2.  **Sincronización de Economía**:
-    *   Integra con **Vault** para leer balances de jugadores.
-    *   Permite asignar roles de Discord basados en dinero ("Magnate", "VIP").
-3.  **Bridge JSON**:
-    *   Exporta el estado del servidor (TPS, RAM, Jugadores) a `server-state.json`.
-    *   Permite a la TUI (Python) mostrar datos en tiempo real sin RCON.
-4.  **Hook con DiscordSRV**:
-    *   No reinventa la rueda: usa la conexión de DiscordSRV existente.
+1.  **🔄 Sincronización de Roles (Bidireccional)**:
+    *   **Discord -> Juego**: Si alguien es "Booster" en Discord, dale "VIP" y $5000 en Minecraft.
+    *   **Juego -> Discord**: Si alguien compra Rango "MVP" en el juego, dale el rol "MVP" en Discord automáticamente.
+2.  **✅ Verificación Nativa Mejorada**:
+    *   Panel con botón "Verificarse" en Discord.
+    *   Asigna múltiples roles y ejecuta comandos consola al verificar.
+    *   **Robustez**: Evita errores de "Interacción Fallida" usando colas asíncronas.
+3.  **💰 Economía Integrada**:
+    *   Soporte para **Vault** y **LuckPerms**.
+4.  **📊 Bridge JSON**:
+    *   Exporta estadísticas en tiempo real para el Dashboard de KubeControlMC (TPS, RAM, Jugadores).
 
 ---
 
-## 🛠️ Instalación y Compilación
-
-Este proyecto usa **Maven**.
-
-### Requisitos
-- JDK 17 o superior.
-- Maven (`mvn`).
-
-### Compilar
-```bash
-mvn clean package
-```
-El archivo generado estará en `target/KubeControlPlugin-1.0-SNAPSHOT.jar`.
-Cópialo a tu carpeta `/plugins/`.
-
-### Dependencias
-Asegúrate de tener instalados en tu servidor:
-- **DiscordSRV** (Obligatorio)
-- **Vault** (Opcional, para economía)
-- **EssentialsX** (u otro proveedor de economía)
-
----
-
-## 🤖 Guía de Setup: Discord Bot
-
-Para que la verificación funcione, necesitas configurar un Bot.
-
-### 1. Crear el Bot
-1. Ve a [Discord Developer Portal](https://discord.com/developers/applications).
-2. Crea una **"New Application"**.
-3. En la pestaña **"Bot"**, crea el bot y copia su **Token**.
-4. **Privileged Gateway Intents** (IMPORTANTE):
-   - Activa **Presence Intent**.
-   - Activa **Server Members Intent** (Necesario para dar roles).
-   - Activa **Message Content Intent**.
-
-### 2. Configuración en DiscordSRV
-KubeControl usa la conexión de DiscordSRV. Edita `/plugins/DiscordSRV/config.yml`:
-
-```yaml
-BotToken: "PEGA_TU_TOKEN_AQUI"
-Channels:
-  global: "ID_CANAL_CHAT"
-```
-
-### 3. Configuración de KubeControl
-Edita `/plugins/KubeControlPlugin/config.yml`:
-
-```yaml
-discord:
-  enabled: true
-  # Token se maneja en DiscordSRV
-  
-  channels:
-    verification: "ID_CANAL_VERIFICACION" # Donde aparecerá el botón
-  
-  native-validation:
-    enabled: true
-    button-label: "✅ Verificarse"
-    reward-role-id: "ID_ROL_A_DAR" # Rol que gana el usuario
-```
-
-> **Nota**: Asegúrate de que el rol del Bot en Discord esté **por encima** del rol que intenta asignar.
-
----
-
-## Comandos
+## 🛠️ Comandos
 
 | Comando | Permiso | Descripción |
 | :--- | :--- | :--- |
 | `/kc reload` | `kubecontrol.admin` | Recarga la configuración. |
-| `/kc status` | `kubecontrol.admin` | Muestra estado del Bridge y JDA. |
-| `/kc sendverify` | `kubecontrol.admin` | Envía el panel con botón al canal configurado. |
+| `/kc status` | `kubecontrol.admin` | Muestra estado de la conexión JDA/Bridge. |
+| `/kc sendverify` | `kubecontrol.admin` | Envía el panel de verificación al canal configurado. |
+| `/kc verifymember <user>` | `kubecontrol.admin` | **Nuevo**: Fuerza la sincronización de roles para un jugador específico. |
 
 ---
 
-## Estructura de Proyecto
+## ⚙️ Configuración (Sync)
 
-- `src/main/java/`: Código fuente Java.
-- `src/main/resources/`: `plugin.yml` y `config.yml`.
-- `pom.xml`: Configuración de dependencias Maven.
+La nueva sección `sync` en `config.yml` permite definir reglas complejas:
+
+```yaml
+sync:
+  # Cada cuanto revisar (ticks)
+  interval-ticks: 1200 # 1 minuto
+
+  # Discord -> Minecraft
+  discord-to-game:
+    - discord-role-id: "999999999999999999" # Server Booster
+      # Comandos a ejecutar si el usuario tiene ese rol
+      commands-on-give:
+        - "lp user %player% parent add vip"
+        - "eco give %player% 5000"
+      commands-on-remove:
+        - "lp user %player% parent remove vip"
+
+  # Minecraft -> Discord
+  game-to-discord:
+    - permission: "group.vip" # Si tiene este permiso/rango
+      # Dar este rol en Discord
+      discord-role-id: "888888888888888888"
+```
+
+## 🤖 Setup Básico
+
+1.  **DiscordSRV**: Asegúrate de tener DiscordSRV instalado y vinculado.
+2.  **Bot**: El bot debe tener permisos de `Manage Roles` y estar por encima de los roles que quiere asignar.
+3.  **Compilación**: `mvn clean package`.
+
+---
 
 Desarrollado para **KubeControlMC**.
