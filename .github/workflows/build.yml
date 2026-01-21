@@ -1,8 +1,10 @@
-name: Build & Package Plugin
+name: Build & Release Plugin
 
 on:
   push:
     branches: [ "main", "master" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "main", "master" ]
 
@@ -23,8 +25,17 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml
 
-    - name: Upload JAR Artifact
+    - name: Upload JAR Artifact (for PRs and pushes)
       uses: actions/upload-artifact@v4
       with:
         name: KubeControlPlugin-JAR
-        path: target/*.jar
+        path: target/KubeControlPlugin-*.jar
+
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: target/KubeControlPlugin-*.jar
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

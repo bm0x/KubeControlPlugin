@@ -44,6 +44,10 @@ public class KubeControl extends JavaPlugin {
         roleSyncTask = new com.bm0x.kubecontrol.discord.RoleSyncTask(this);
         roleSyncTask.start();
 
+        // Register Event Listeners (for real-time sync)
+        getServer().getPluginManager().registerEvents(
+                new com.bm0x.kubecontrol.listeners.PlayerEventListener(this), this);
+
         // Register Commands
         getCommand("kc").setExecutor(new com.bm0x.kubecontrol.commands.CommandManager(this));
 

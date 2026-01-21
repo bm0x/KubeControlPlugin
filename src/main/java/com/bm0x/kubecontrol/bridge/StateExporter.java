@@ -51,6 +51,13 @@ public class StateExporter {
         }.runTaskTimerAsynchronously(plugin, 20L, interval * 20L);
     }
 
+    /**
+     * Exporta el estado del servidor inmediatamente (para uso en eventos).
+     */
+    public void exportNow() {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::export);
+    }
+
     private void export() {
         ServerState state = new ServerState();
 

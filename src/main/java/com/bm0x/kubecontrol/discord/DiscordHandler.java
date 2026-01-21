@@ -114,7 +114,6 @@ public class DiscordHandler extends ListenerAdapter {
         event.deferReply(true).queue();
 
         // Get Reward Role IDs (List support)
-        // Wrap in ArrayList to ensure mutability
         java.util.List<String> roleIds = new java.util.ArrayList<>(
                 plugin.getConfig().getStringList("discord.native-validation.reward-role-ids"));
 
@@ -127,60 +126,112 @@ public class DiscordHandler extends ListenerAdapter {
 
         Guild guild = event.getGuild();
         Member member = event.getMember();
+        Member selfMember = guild != null ? guild.getSelfMember() : null;
 
-        if (guild != null && member != null && !roleIds.isEmpty()) {
-            // Collect valid roles
-            java.util.List<Role> rolesToAdd = new java.util.ArrayList<>();
-            StringBuilder roleNames = new StringBuilder();
+        // === Validaciones básicas ===
+        if (guild == null || member == null || selfMember == null) {
+            event.getHook().sendMessage("❌ **Error:** No se pudo obtener información del servidor.").queue();
+            return;
+        }
 
-            for (String rid : roleIds) {
-                Role r = guild.getRoleById(rid);
-                if (r != null) {
-                    rolesToAdd.add(r);
-                    if (roleNames.length() > 0)
-                        roleNames.append(", ");
-                    roleNames.append(r.getName());
-                }
+        if (roleIds.isEmpty()) {
+            event.getHook().sendMessage(
+                    "⚠️ **Error de Configuración:**\nNo hay roles configurados en `reward-role-ids`.\nContacta a un administrador.")
+                    .queue();
+            return;
+        }
+
+        // === Clasificar roles por estado ===
+        java.util.List<Role> rolesToAdd = new java.util.ArrayList<>();
+        java.util.List<String> alreadyHas = new java.util.ArrayList<>();
+        java.util.List<String> notFound = new java.util.ArrayList<>();
+        java.util.List<String> hierarchyError = new java.util.ArrayList<>();
+        boolean hasManageRoles = selfMember
+                .hasPermission(github.scarsz.discordsrv.dependencies.jda.api.Permission.MANAGE_ROLES);
+
+        for (String rid : roleIds) {
+            Role role = guild.getRoleById(rid);
+
+            if (role == null) {
+                notFound.add(rid);
+                continue;
             }
 
-            if (!rolesToAdd.isEmpty()) {
-                // Reply via Hook
-                event.getHook().sendMessage("✅ **Verificado!**\nRoles asignados: " + roleNames.toString()).queue();
+            // ¿Ya tiene el rol?
+            if (member.getRoles().contains(role)) {
+                alreadyHas.add(role.getName());
+                continue;
+            }
 
-                // Add Roles
-                for (Role r : rolesToAdd) {
-                    if (!member.getRoles().contains(r)) {
-                        guild.addRoleToMember(member, r).queue();
-                    }
-                }
+            // ¿Bot puede asignar este rol? (jerarquía)
+            if (!selfMember.canInteract(role)) {
+                hierarchyError.add(role.getName());
+                continue;
+            }
 
-                // Check for Linked Account and Execute Commands
-                if (DiscordSRV.getPlugin().getAccountLinkManager() != null) {
-                    java.util.UUID uuid = DiscordSRV.getPlugin().getAccountLinkManager().getUuid(member.getId());
-                    if (uuid != null) {
-                        final String playerName = org.bukkit.Bukkit.getOfflinePlayer(uuid).getName();
-                        if (playerName != null) {
-                            java.util.List<String> commands = plugin.getConfig()
-                                    .getStringList("discord.native-validation.reward-commands");
-                            if (commands != null && !commands.isEmpty()) {
-                                org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
-                                    org.bukkit.command.ConsoleCommandSender console = org.bukkit.Bukkit
-                                            .getConsoleSender();
-                                    for (String cmd : commands) {
-                                        String parsedCmd = cmd.replace("%player%", playerName);
-                                        org.bukkit.Bukkit.dispatchCommand(console, parsedCmd);
-                                    }
-                                });
+            rolesToAdd.add(role);
+        }
+
+        // === Construir respuesta ===
+        StringBuilder response = new StringBuilder();
+
+        // Verificar permiso MANAGE_ROLES
+        if (!hasManageRoles) {
+            response.append("❌ **Error:** El bot no tiene el permiso `MANAGE_ROLES`.\nContacta a un administrador.\n");
+        } else if (!rolesToAdd.isEmpty()) {
+            StringBuilder names = new StringBuilder();
+            for (Role r : rolesToAdd) {
+                if (names.length() > 0)
+                    names.append(", ");
+                names.append(r.getName());
+                guild.addRoleToMember(member, r).queue(
+                        success -> {
+                        },
+                        error -> plugin.getLogger()
+                                .warning("Error asignando rol " + r.getName() + ": " + error.getMessage()));
+            }
+            response.append("✅ **¡Verificado!** Roles asignados: ").append(names).append("\n");
+        }
+
+        if (!alreadyHas.isEmpty()) {
+            response.append("ℹ️ Ya tenías: ").append(String.join(", ", alreadyHas)).append("\n");
+        }
+
+        if (!notFound.isEmpty()) {
+            response.append("⚠️ Roles no encontrados (IDs inválidas): `").append(String.join("`, `", notFound))
+                    .append("`\n");
+        }
+
+        if (!hierarchyError.isEmpty()) {
+            response.append("❌ No puedo asignar (jerarquía superior al bot): ")
+                    .append(String.join(", ", hierarchyError)).append("\n");
+        }
+
+        if (response.length() == 0) {
+            response.append("❌ No se pudo asignar ningún rol. Contacta a un administrador.");
+        }
+
+        event.getHook().sendMessage(response.toString()).queue();
+
+        // === Ejecutar comandos si hay cuenta vinculada ===
+        if (!rolesToAdd.isEmpty() && DiscordSRV.getPlugin().getAccountLinkManager() != null) {
+            java.util.UUID uuid = DiscordSRV.getPlugin().getAccountLinkManager().getUuid(member.getId());
+            if (uuid != null) {
+                final String playerName = org.bukkit.Bukkit.getOfflinePlayer(uuid).getName();
+                if (playerName != null) {
+                    java.util.List<String> commands = plugin.getConfig()
+                            .getStringList("discord.native-validation.reward-commands");
+                    if (commands != null && !commands.isEmpty()) {
+                        org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
+                            org.bukkit.command.ConsoleCommandSender console = org.bukkit.Bukkit.getConsoleSender();
+                            for (String cmd : commands) {
+                                String parsedCmd = cmd.replace("%player%", playerName);
+                                org.bukkit.Bukkit.dispatchCommand(console, parsedCmd);
                             }
-                        }
+                        });
                     }
                 }
-
-            } else {
-                event.getHook().sendMessage("❌ Error: Roles configurados no encontrados en Discord.").queue();
             }
-        } else {
-            event.getHook().sendMessage("❌ Error de configuración o Guild nula.").queue();
         }
     }
 

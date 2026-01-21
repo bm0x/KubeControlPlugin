@@ -122,11 +122,28 @@ public class RoleSyncTask extends BukkitRunnable {
 
                 if (criterionMet && roleId != null) {
                     Role targetRole = guild.getRoleById(roleId);
-                    // Add role if not present
-                    if (targetRole != null && !member.getRoles().contains(targetRole)) {
-                        guild.addRoleToMember(member, targetRole).queue();
+
+                    // Validar que el rol existe
+                    if (targetRole == null) {
                         plugin.getLogger()
-                                .info("Sincronizando: Añadido rol " + targetRole.getName() + " a " + p.getName());
+                                .warning("[Sync] Rol no encontrado (ID: " + roleId + ") para la regla '" + key + "'");
+                        continue;
+                    }
+
+                    // Validar jerarquía
+                    if (!guild.getSelfMember().canInteract(targetRole)) {
+                        plugin.getLogger().warning("[Sync] No puedo asignar rol '" + targetRole.getName() +
+                                "' - Jerarquía superior al bot. Mueve el rol del bot más arriba en Discord.");
+                        continue;
+                    }
+
+                    // Agregar rol si no lo tiene
+                    if (!member.getRoles().contains(targetRole)) {
+                        guild.addRoleToMember(member, targetRole).queue(
+                                success -> plugin.getLogger()
+                                        .info("[Sync] Rol '" + targetRole.getName() + "' asignado a " + p.getName()),
+                                error -> plugin.getLogger().warning("[Sync] Error asignando rol '"
+                                        + targetRole.getName() + "': " + error.getMessage()));
                     }
                 }
             }

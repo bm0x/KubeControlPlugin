@@ -35,7 +35,7 @@ discord:
 # ==========================================
 sync:
   enabled: true
-  interval: 60 # Segundos entre comprobaciones
+  interval: 30 # Segundos entre comprobaciones (respaldo, la sync principal es por eventos)
 
   # Discord -> Minecraft
   # Si el usuario tiene X rol en Discord, ejecutamos comandos en MC
